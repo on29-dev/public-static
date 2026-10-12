@@ -575,27 +575,55 @@ function unpack(h){
 }
 
 /* ---------- 카메라 ---------- */
+// 자체 호스팅하려면 아래 세 경로만 같은 폴더의 파일 경로로 바꾸면 됩니다.
+const MP_BUNDLE="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+const MP_WASM  ="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm";
+const MP_MODEL ="https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task";
+
 async function initCam(){
   $("camErr").classList.add("hidden");
   $("startCam").disabled=true;$("startCam").textContent="카메라 준비 중…";
+  let step="cam";
   try{
     stream=await navigator.mediaDevices.getUserMedia({
       video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
     const v=$("video");v.srcObject=stream;await v.play();
-    show("s2");$("badge").textContent="모델 불러오는 중…";
-    const vis=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+    show("s2");
+
+    step="lib";
+    $("badge").textContent="모델 불러오는 중…";
+    const vis=await import(MP_BUNDLE);
     PoseLandmarker=vis.PoseLandmarker;
-    const f=await vis.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-    landmarker=await PoseLandmarker.createFromOptions({
-      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},
-      runningMode:"VIDEO",numPoses:1},f);
+
+    step="wasm";
+    const fileset=await vis.FilesetResolver.forVisionTasks(MP_WASM);
+
+    step="model";
+    // 첫 인자는 반드시 FilesetResolver 결과(WASM 런타임), 둘째가 옵션
+    const mk=d=>PoseLandmarker.createFromOptions(fileset,{
+      baseOptions:{modelAssetPath:MP_MODEL,delegate:d},
+      runningMode:"VIDEO",numPoses:1});
+    try{
+      landmarker=await mk("GPU");
+    }catch(gpuErr){
+      $("badge").textContent="모델 불러오는 중… (CPU)";
+      landmarker=await mk("CPU");       // 일부 기기는 GPU 가속이 막혀 있음
+    }
+
     drawer=new vis.DrawingUtils($("overlay").getContext("2d"));
     $("badge").textContent="대기 중";phase="preview";loop();
   }catch(e){
     if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
     show("s1");
     $("startCam").disabled=false;$("startCam").textContent="카메라 켜기";
-    $("camErr").textContent="카메라나 자세 인식 모델을 불러오지 못했습니다 ("+(e.message||e)+"). 인터넷 연결과 카메라 권한을 확인하거나, '카메라 없이 숫자만 입력하기'로 진행하세요.";
+    const why={
+      cam:"카메라를 열지 못했습니다. 주소가 https인지, 카메라 권한이 허용돼 있는지, 다른 앱이 카메라를 쓰고 있지 않은지 확인해 주세요.",
+      lib:"자세 인식 라이브러리를 내려받지 못했습니다. 인터넷 연결을 확인해 주세요.",
+      wasm:"자세 인식 엔진(WASM)을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.",
+      model:"자세 인식 모델을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요."
+    }[step];
+    $("camErr").innerHTML=why+"<br><br>해결되지 않으면 <b>'카메라 없이 숫자만 입력하기'</b>로 진행할 수 있습니다."+
+      "<br><span style='font-size:12px;opacity:.75'>상세: "+esc(e.message||String(e))+"</span>";
     $("camErr").classList.remove("hidden");
   }
 }
