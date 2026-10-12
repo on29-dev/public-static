@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>뜀마니 러닝 캐릭터 판정</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800;900&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&display=swap">
+<style>
+:root{
+  --track:#1B3FA0; --clock:#FFD23F; --ink:#0E1A3A; --mute:#5B6785;
+  --line:#DCE2F0; --soft:#F2F5FC; --ok:#12855B; --red:#E4002B;
+  --sans:"Pretendard","Noto Sans KR",system-ui,sans-serif;
+  --num:"Barlow Condensed","Noto Sans KR",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--sans);color:var(--ink);background:var(--soft);word-break:keep-all;
+  padding:0 0 env(safe-area-inset-bottom,0px);-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px}
+header{background:var(--track);color:#fff;padding:18px 16px;text-align:center}
+header h1{font-size:19px;font-weight:800;letter-spacing:-.02em}
+header p{font-size:13px;opacity:.85;margin-top:3px}
+.card{background:#fff;border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 2px 10px rgba(14,26,58,.06)}
+.card h2{font-size:17px;font-weight:800;margin-bottom:12px}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 6px}
+label:first-of-type{margin-top:0}
+input,select{width:100%;font:500 17px var(--sans);padding:12px 14px;border:2px solid var(--line);
+  border-radius:11px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--track)}
+.row{display:flex;gap:10px}.row>*{flex:1}
+button{font:800 17px var(--sans);border:none;border-radius:12px;padding:15px;width:100%;
+  background:var(--track);color:#fff;cursor:pointer}
+button:active{opacity:.85}
+button:disabled{background:#B9C3DC}
+button.ghost{background:#fff;color:var(--track);border:2px solid var(--track)}
+button.sub{background:var(--soft);color:var(--ink);font-size:15px;padding:12px}
+.hint{font-size:13px;color:var(--mute);line-height:1.6;margin-top:10px}
+.hidden{display:none!important}
+
+#stageWrap{position:relative;background:#0A1430;border-radius:16px;overflow:hidden;aspect-ratio:3/4;margin-bottom:12px}
+#video,#overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#badge{position:absolute;left:10px;top:10px;background:rgba(10,20,48,.75);color:#fff;
+  font-size:13px;font-weight:700;padding:7px 11px;border-radius:20px}
+#big{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font:800 90px var(--num);color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.6)}
+#bar{position:absolute;left:0;right:0;bottom:0;height:6px;background:rgba(255,255,255,.25)}
+#bar i{display:block;height:100%;width:0;background:var(--clock)}
+
+.live{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.live div{background:var(--soft);border-radius:12px;padding:12px;text-align:center}
+.live b{display:block;font:800 26px var(--num);color:var(--track);line-height:1}
+.live b.bad{color:var(--red)}
+.live span{font-size:12px;color:var(--mute)}
+
+.pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.pick3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.pick3 button{padding:14px 4px;font-size:15px}
+.pick3 button.on{background:var(--track);color:#fff;border-color:var(--track)}
+.pick button{padding:16px 10px;font-size:16px}
+.pick button.on{background:var(--track);color:#fff;border-color:var(--track)}
+
+.resultCard{text-align:center;padding:26px 18px}
+.emo{font-size:80px;line-height:1}
+.lvl{display:inline-block;font-size:13px;font-weight:800;background:var(--clock);
+  padding:5px 12px;border-radius:20px;margin-top:10px}
+.animal{font-size:34px;font-weight:900;letter-spacing:-.03em;margin-top:8px}
+.sig{font-size:15px;color:var(--track);font-weight:700;margin-top:4px}
+.desc{font-size:15px;color:var(--mute);line-height:1.65;margin-top:14px;text-align:left}
+.desc b{color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.stats div{background:var(--soft);border-radius:11px;padding:10px 6px}
+.stats b{display:block;font:800 24px var(--num);line-height:1.1}
+.stats span{font-size:11px;color:var(--mute)}
+
+#qrBox{text-align:center}
+#qrCanvas{width:100%;max-width:260px;height:auto;image-rendering:pixelated;background:#fff;border-radius:8px}
+#shareCanvas{display:none}
+
+details{margin-top:8px;border-top:1px solid var(--line);padding-top:12px}
+summary{font-size:14px;font-weight:700;color:var(--mute);cursor:pointer;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"⚙ "}
+.thr{display:flex;align-items:center;gap:10px;margin-top:12px}
+.thr label{flex:1;margin:0;font-size:14px}
+.thr input{width:96px;flex:none;padding:9px 10px;font-size:16px;text-align:right}
+.chk{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px;font-weight:700}
+.chk input{width:22px;height:22px;flex:none;padding:0}
+.warn{background:#FFF6DA;border-radius:11px;padding:12px;font-size:13px;line-height:1.6;margin-top:12px}
+.err{background:#FFE9EC;color:#8A0016;border-radius:11px;padding:12px;font-size:14px;line-height:1.6;margin-top:12px}
+.foot{font-size:12px;color:var(--mute);text-align:center;line-height:1.6;margin-top:18px}
+.adminLink{display:block;text-align:center;font-size:13px;color:var(--mute);margin-top:22px;
+  background:none;border:none;padding:8px;width:auto;margin-left:auto;margin-right:auto;font-weight:500;cursor:pointer}
+
+/* 운영자 통계 */
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+.kpi div{background:var(--soft);border-radius:12px;padding:14px 8px;text-align:center}
+.kpi b{display:block;font:800 30px var(--num);color:var(--track);line-height:1}
+.kpi span{font-size:12px;color:var(--mute)}
+.dist{margin-top:6px}
+.dist .r{display:grid;grid-template-columns:96px 1fr 34px;align-items:center;gap:8px;margin-top:7px;font-size:14px}
+.dist .b{height:16px;border-radius:8px;background:var(--track);min-width:2px}
+.dist .n{text-align:right;font:800 16px var(--num)}
+.logrow{display:flex;justify-content:space-between;gap:8px;font-size:14px;padding:9px 0;border-top:1px solid var(--line)}
+.logrow span{color:var(--mute);font-size:13px}
+
+/* 인쇄 전용 */
+.printOnly{display:none}
+@media print{
+  @page{size:A4 portrait;margin:14mm}
+  html,body{background:#fff!important;overflow:visible!important;height:auto}
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  header,button,.foot,#saveHint,#qrErr,#adminBtn{display:none!important}
+  #s1,#sd,#s2,#s3,#sa{display:none!important}
+  #s4{display:block!important}
+  .wrap{max-width:none;margin:0;padding:0}
+  .printOnly{display:block}
+  .card{box-shadow:none;border:1pt solid #C9D3EA;border-radius:3mm;
+    padding:6mm;margin-bottom:5mm;break-inside:avoid;page-break-inside:avoid}
+  #printHead{background:var(--track);color:#fff;padding:5mm;border-radius:3mm;
+    margin-bottom:5mm;text-align:center;break-inside:avoid}
+  #printHead b{font-size:15pt;font-weight:800;letter-spacing:-.02em}
+  #printHead span{display:block;font-size:9.5pt;opacity:.9;margin-top:1.5mm}
+  .resultCard{padding:7mm 6mm}
+  .emo{font-size:46pt}
+  .lvl{font-size:10pt;margin-top:3mm}
+  .animal{font-size:27pt;margin-top:2mm}
+  .sig{font-size:11.5pt}
+  .stats{gap:3mm;margin-top:5mm}
+  .stats div{padding:3mm 1mm}
+  .stats b{font-size:17pt}
+  .stats span{font-size:7.5pt}
+  .desc{font-size:11pt;margin-top:5mm;line-height:1.7}
+  #qrCard{display:block!important}
+  #qrCard{text-align:center}
+  #qrCard h2,#qrCard .hint{display:none}
+  #qrCard .printOnly{display:block}
+  #qrBox{margin:2mm 0}
+  #qrCanvas{width:34mm;max-width:34mm}
+  #printFoot{font-size:10pt;line-height:1.6;text-align:center;padding:4mm;
+    border:1pt dashed var(--track);border-radius:3mm;color:var(--ink)}
+  #printFoot b{color:var(--track)}
+}
+
+/* QR 열람 전용 */
+body.ro .roHide{display:none!important}
+body.ro .resultCard{user-select:none;-webkit-user-select:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>뜀마니 러닝 캐릭터 판정</h1>
+  <p>롯데이노베이트 창립 30주년</p>
+</header>
+
+<div class="wrap">
+
+<!-- 1. 입력 -->
+<section id="s1">
+  <div class="card">
+    <h2>참가자 정보</h2>
+    <label for="nick">닉네임 또는 이름</label>
+    <input id="nick" placeholder="예: 홍길동" autocomplete="off">
+    <label for="height">키 (cm)</label>
+    <input id="height" type="number" inputmode="numeric" value="172" min="130" max="210">
+    <label>러닝 경험</label>
+    <div class="pick3">
+      <button class="ghost" data-exp="0">거의 안 뛴다</button>
+      <button class="ghost on" data-exp="1">가끔 뛴다</button>
+      <button class="ghost" data-exp="2">자주 뛴다</button>
+    </div>
+    <p class="hint">측정은 <b>편하게 대화할 수 있는 속도</b>에서 해주세요. 숨이 차면 평소 자세가 안 나옵니다.</p>
+  </div>
+
+  <div class="card">
+    <h2>측정 준비</h2>
+    <p class="hint" style="margin-top:0">폰을 삼각대에 세로로 고정하고, <b>달리는 사람의 정측면</b>이 화면에 머리부터 발까지 들어오게 맞춰주세요. 배경은 단색일수록 정확합니다.</p>
+    <div class="warn">첫 실행 시 카메라 권한을 허용해야 합니다. 영상은 폰 안에서만 처리되고 저장되거나 전송되지 않습니다.</div>
+    <button id="startCam" style="margin-top:14px">카메라 켜기</button>
+    <button id="manualBtn" class="sub" style="margin-top:8px">카메라 없이 숫자만 입력하기</button>
+    <button id="demoBtn" class="sub" style="margin-top:8px">🧪 샘플 데이터로 판정 테스트</button>
+    <div id="camErr" class="err hidden"></div>
+
+    <details>
+      <summary>판정 기준값 조정 (운영자용)</summary>
+      <div class="thr"><label for="tCad">케이던스 경계 (spm)</label><input id="tCad" type="number" value="165" step="1"></div>
+      <div class="thr"><label for="tOsc">수직진폭 경계 (cm)</label><input id="tOsc" type="number" value="9" step="0.5"></div>
+      <div class="thr"><label for="tDur">측정 시간 (초)</label><input id="tDur" type="number" value="20" step="5" min="10" max="40"></div>
+      <div class="thr"><label for="tWait">적응 대기 (초)</label><input id="tWait" type="number" value="60" step="10" min="0" max="120"></div>
+      <div class="thr"><label for="tSwing">팔 흔들림 기준</label><input id="tSwing" type="number" value="12" step="1" min="0" max="40"></div>
+      <label class="chk"><input type="checkbox" id="optNoName"> QR에 이름 넣지 않기</label>
+      <p class="hint">행사 전 회원 15~20명을 측정해 보고, 그 집단의 중앙값으로 경계를 맞추면 캐릭터가 고르게 나옵니다.</p>
+    </details>
+  </div>
+</section>
+
+<!-- 데모 -->
+<section id="sd" class="hidden">
+  <div class="card">
+    <h2>샘플 데이터로 판정 테스트</h2>
+    <p class="hint" style="margin-top:0">실제로 뛰지 않아도 됩니다. 가상 러너의 골반 움직임을 만들어 <b>실제 분석 코드에 그대로</b> 넣어보는 기능이에요. 입력한 값과 측정된 값이 비슷하게 나오면 계산이 정상입니다.</p>
+    <div id="presets"></div>
+  </div>
+  <div class="card hidden" id="demoOut">
+    <h2>분석 결과</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:15px">
+      <tr><th style="text-align:left;padding:8px 0;color:var(--mute);font-size:13px">항목</th>
+          <th style="text-align:right;padding:8px 0;color:var(--mute);font-size:13px">입력값</th>
+          <th style="text-align:right;padding:8px 0;color:var(--mute);font-size:13px">측정값</th></tr>
+      <tr><td style="padding:8px 0;border-top:1px solid var(--line)">케이던스</td>
+          <td id="dExpC" style="text-align:right;border-top:1px solid var(--line);font-weight:700"></td>
+          <td id="dGotC" style="text-align:right;border-top:1px solid var(--line);font-weight:800;color:var(--track)"></td></tr>
+      <tr><td style="padding:8px 0;border-top:1px solid var(--line)">수직진폭</td>
+          <td id="dExpO" style="text-align:right;border-top:1px solid var(--line);font-weight:700"></td>
+          <td id="dGotO" style="text-align:right;border-top:1px solid var(--line);font-weight:800;color:var(--track)"></td></tr>
+      <tr><td style="padding:8px 0;border-top:1px solid var(--line)">팔 흔들림</td>
+          <td id="dExpS" style="text-align:right;border-top:1px solid var(--line);font-weight:700"></td>
+          <td id="dGotS" style="text-align:right;border-top:1px solid var(--line);font-weight:800;color:var(--track)"></td></tr>
+    </table>
+    <div id="dDiff" class="hint"></div>
+    <button id="dJudge" style="margin-top:14px">이 값으로 캐릭터 판정하기</button>
+  </div>
+  <button id="dBack" class="ghost">돌아가기</button>
+</section>
+
+<!-- 2. 측정 -->
+<section id="s2" class="hidden">
+  <div id="stageWrap">
+    <video id="video" playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div id="badge">준비 중</div>
+    <div id="big"></div>
+    <div id="bar"><i></i></div>
+  </div>
+  <div class="live">
+    <div><b id="liveCad">–</b><span>케이던스 spm</span></div>
+    <div><b id="liveOsc">–</b><span>수직진폭 cm</span></div>
+    <div><b id="liveSwing">–</b><span>팔 흔들림</span></div>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <button id="goBtn">측정 시작</button>
+    <button id="skipBtn" class="sub" style="margin-top:8px">적응 시간 건너뛰고 바로 측정</button>
+    <p class="hint" id="s2hint">벨트 <b>뒤쪽 절반</b>에서 편하게 뛰도록 안내해 주세요. 손잡이를 놓은 것을 확인한 뒤 측정을 시작합니다.</p>
+  </div>
+</section>
+
+<!-- 3. 확인 -->
+<section id="s3" class="hidden">
+  <div class="card">
+    <h2>측정 결과 확인</h2>
+    <div class="row">
+      <div>
+        <label for="mCad">케이던스 (spm)</label>
+        <input id="mCad" type="number" inputmode="numeric">
+      </div>
+      <div>
+        <label for="mOsc">수직진폭 (cm)</label>
+        <input id="mOsc" type="number" inputmode="decimal" step="0.1">
+      </div>
+    </div>
+    <div id="walkWarn" class="warn hidden">케이던스가 140spm 아래예요. <b>걷고 있었을 가능성</b>이 큽니다. 속도를 올려서 다시 측정하는 걸 권해요.</div>
+    <div id="gripWarn" class="err hidden">팔이 거의 흔들리지 않았어요. <b>손잡이를 잡고 계셨을 가능성</b>이 큽니다. 이 상태로는 자세 분석이 정확하지 않아요.<br>손을 떼고 다시 측정하거나, 아래 버튼으로 그대로 진행할 수 있습니다.
+      <button id="gripOk" class="sub" style="margin-top:10px">그래도 이 값으로 진행</button>
+    </div>
+    <p class="hint">자동 측정값입니다. 이상하면 직접 고쳐도 됩니다.</p>
+  </div>
+  <div class="card">
+    <h2>착지는 어느 쪽이었나요?</h2>
+    <p class="hint" style="margin-top:0">영상에서 발이 바닥에 <b>처음 닿는 순간</b>을 보고 골라주세요.</p>
+    <div class="pick">
+      <button class="ghost" data-foot="heel">뒤꿈치가 먼저</button>
+      <button class="ghost" data-foot="fore">발 중앙·앞쪽</button>
+    </div>
+    <button id="judgeBtn" style="margin-top:14px" disabled>캐릭터 판정하기</button>
+  </div>
+</section>
+
+<!-- 4. 결과 -->
+<section id="s4" class="hidden">
+  <div class="printOnly" id="printHead">
+    <b>뜀마니 러닝 캐릭터 분석</b>
+    <span id="printSub">롯데이노베이트 창립 30주년</span>
+  </div>
+  <div class="card resultCard" id="rc">
+    <div class="emo" id="emo"></div>
+    <div class="lvl" id="lvl"></div>
+    <div class="animal" id="animal"></div>
+    <div class="sig" id="sig"></div>
+    <div class="stats">
+      <div><b id="rCad"></b><span>케이던스 spm</span></div>
+      <div><b id="rOsc"></b><span>수직진폭 cm</span></div>
+      <div><b id="rStr"></b><span>팔치기</span></div>
+    </div>
+    <div class="desc" id="desc"></div>
+  </div>
+
+  <div class="card roHide" id="qrCard">
+    <h2>참가자 폰으로 결과 전달</h2>
+    <h2 class="printOnly">폰으로 다시 보기</h2>
+    <div id="qrBox"><canvas id="qrCanvas" width="200" height="200"></canvas></div>
+    <p class="printOnly" style="font-size:9pt;color:#5B6785;margin-top:2mm">카메라로 찍으면 결과가 다시 열립니다</p>
+    <p class="hint" style="text-align:center">참가자가 이 QR을 찍으면 본인 폰에 결과가 열립니다.<br>결과는 링크 안에 담겨 있어 서버에 저장되지 않습니다.</p>
+    <div id="qrErr" class="err hidden"></div>
+  </div>
+
+  <button id="printBtn" class="roHide" style="margin-bottom:10px">🖨 A4로 인쇄하기</button>
+  <button id="saveImgBtn" class="ghost" style="margin-bottom:10px">📷 결과를 이미지로 저장</button>
+  <p class="hint hidden" id="saveHint" style="text-align:center"></p>
+  <button id="againBtn" class="roHide">다음 참가자 측정</button>
+  <div class="printOnly" id="printFoot">
+    오늘 <b>뜀마니</b>에 가입하시면 활동 지원금이 추가로 지급됩니다.<br>
+    부스에서 바로 가입하실 수 있어요. · <span id="printDate"></span><br>
+    <span style="font-size:8.5pt;color:#5B6785">재미로 보는 러닝 타입 분류입니다. 의학적 진단이 아닙니다.</span>
+  </div>
+  <p class="foot">재미로 보는 러닝 타입 분류입니다. 의학적 진단이나 정밀 분석이 아닙니다.</p>
+</section>
+
+<!-- 운영자 -->
+<section id="sa" class="hidden">
+  <div class="card">
+    <h2>측정 현황</h2>
+    <div class="kpi">
+      <div><b id="aTotal">0</b><span>측정 인원</span></div>
+      <div><b id="aMedC">–</b><span>케이던스 중앙값</span></div>
+      <div><b id="aMedO">–</b><span>진폭 중앙값</span></div>
+    </div>
+    <p class="hint">중앙값을 판정 기준값으로 옮기면 캐릭터가 고르게 나옵니다.</p>
+    <button id="applyMed" class="sub" style="margin-top:10px">중앙값을 기준값으로 적용</button>
+  </div>
+  <div class="card">
+    <h2>캐릭터 분포</h2>
+    <div class="dist" id="aDist"></div>
+  </div>
+  <div class="card">
+    <h2>측정 기록</h2>
+    <div id="aLog"></div>
+  </div>
+  <button id="aCsv" style="margin-bottom:10px">CSV 내보내기</button>
+  <button id="aClear" class="sub" style="margin-bottom:10px">전체 기록 삭제</button>
+  <button id="aBack" class="ghost">돌아가기</button>
+  <p class="foot">기록은 이 브라우저에만 저장됩니다. 브라우저 데이터를 지우면 함께 사라지니,<br>20명마다 CSV로 내보내 두세요.</p>
+</section>
+
+<button id="adminBtn" class="adminLink roHide">운영자 화면</button>
+
+</div>
+<canvas id="shareCanvas" width="1080" height="1220"></canvas>
+
+<script>
+/* ========== QR 인코더 (외부 라이브러리 없음, ECC level M) ========== */
+const QR=(()=>{
+  const EC={1:[10,[[1,16]]],2:[16,[[1,28]]],3:[26,[[1,44]]],4:[18,[[2,32]]],
+    5:[24,[[2,43]]],6:[16,[[4,27]]],7:[18,[[4,31]]],8:[22,[[2,38],[2,39]]],
+    9:[22,[[3,36],[2,37]]],10:[26,[[4,43],[1,44]]]};
+  const ALIGN={1:[],2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],
+    7:[6,22,38],8:[6,24,42],9:[6,26,46],10:[6,28,50]};
+  const EXP=new Uint8Array(512),LOG=new Uint8Array(256);
+  (()=>{let x=1;for(let i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&0x100)x^=0x11D}
+    for(let i=255;i<512;i++)EXP[i]=EXP[i-255]})();
+  const mul=(a,b)=>(a&&b)?EXP[LOG[a]+LOG[b]]:0;
+  function gen(n){let g=[1];for(let i=0;i<n;i++){const t=new Array(g.length+1).fill(0);
+    for(let j=0;j<g.length;j++){t[j]^=g[j];t[j+1]^=mul(g[j],EXP[i])}g=t}return g}
+  function rs(data,n){const g=gen(n),r=new Array(n).fill(0);
+    for(const d of data){const f=d^r[0];r.shift();r.push(0);
+      if(f)for(let i=0;i<n;i++)r[i]^=mul(g[i+1],f)}return r}
+  const MASKS=[(r,c)=>(r+c)%2==0,(r,c)=>r%2==0,(r,c)=>c%3==0,(r,c)=>(r+c)%3==0,
+    (r,c)=>(((r>>1)+Math.floor(c/3))%2)==0,(r,c)=>((r*c)%2+(r*c)%3)==0,
+    (r,c)=>(((r*c)%2+(r*c)%3)%2)==0,(r,c)=>(((r+c)%2+(r*c)%3)%2)==0];
+
+  function penalty(m,size){
+    let p=0;
+    for(let i=0;i<size;i++){
+      for(const dir of [0,1]){
+        let run=1;
+        for(let j=1;j<size;j++){
+          const a=dir?m[j][i]:m[i][j], b=dir?m[j-1][i]:m[i][j-1];
+          if(a===b)run++; else {if(run>=5)p+=3+(run-5); run=1}
+        }
+        if(run>=5)p+=3+(run-5);
+      }
+    }
+    for(let r=0;r<size-1;r++)for(let c=0;c<size-1;c++){
+      const v=m[r][c];
+      if(v===m[r][c+1]&&v===m[r+1][c]&&v===m[r+1][c+1])p+=3;
+    }
+    const pat=[1,0,1,1,1,0,1,0,0,0,0];
+    const chk=arr=>{
+      for(let i=0;i+11<=arr.length;i++){
+        let f=true,b=true;
+        for(let j=0;j<11;j++){if(arr[i+j]!==pat[j])f=false;if(arr[i+j]!==pat[10-j])b=false}
+        if(f||b)p+=40;
+      }
+    };
+    for(let i=0;i<size;i++){chk(m[i]);chk(m.map(row=>row[i]))}
+    let dark=0;
+    for(let r=0;r<size;r++)for(let c=0;c<size;c++)dark+=m[r][c];
+    p+=Math.floor(Math.abs(dark*100/(size*size)-50)/5)*10;
+    return p;
+  }
+
+  function make(str){
+    const bytes=new TextEncoder().encode(str);
+    let ver=0,total=0;
+    for(let v=1;v<=10;v++){
+      const t=EC[v][1].reduce((a,b)=>a+b[0]*b[1],0);
+      if(bytes.length*8+4+(v<10?8:16)<=t*8){ver=v;total=t;break}
+    }
+    if(!ver)throw new Error("데이터가 너무 깁니다");
+    const bb=[],put=(v,n)=>{for(let i=n-1;i>=0;i--)bb.push((v>>>i)&1)};
+    put(4,4);put(bytes.length,ver<10?8:16);
+    for(const b of bytes)put(b,8);
+    for(let i=0;i<4&&bb.length<total*8;i++)bb.push(0);
+    while(bb.length%8)bb.push(0);
+    const dat=[];
+    for(let i=0;i<bb.length;i+=8){let v=0;for(let j=0;j<8;j++)v=(v<<1)|bb[i+j];dat.push(v)}
+    const PAD=[0xEC,0x11];let pi=0;
+    while(dat.length<total)dat.push(PAD[pi++&1]);
+
+    const ecLen=EC[ver][0],blk=[],ecb=[];let idx=0;
+    for(const [cnt,dlen] of EC[ver][1])for(let i=0;i<cnt;i++){
+      const b=dat.slice(idx,idx+dlen);idx+=dlen;blk.push(b);ecb.push(rs(b,ecLen));
+    }
+    const out=[],maxD=Math.max(...blk.map(b=>b.length));
+    for(let i=0;i<maxD;i++)for(const b of blk)if(i<b.length)out.push(b[i]);
+    for(let i=0;i<ecLen;i++)for(const b of ecb)out.push(b[i]);
+
+    const size=ver*4+17;
+    const m=Array.from({length:size},()=>new Array(size).fill(0));
+    const fx=Array.from({length:size},()=>new Array(size).fill(false));
+    const fin=(r,c)=>{for(let i=-1;i<=7;i++)for(let j=-1;j<=7;j++){
+      const y=r+i,x=c+j;if(y<0||x<0||y>=size||x>=size)continue;
+      const on=(i>=0&&i<=6&&(j===0||j===6))||(j>=0&&j<=6&&(i===0||i===6))||(i>=2&&i<=4&&j>=2&&j<=4);
+      m[y][x]=on?1:0;fx[y][x]=true;}};
+    fin(0,0);fin(0,size-7);fin(size-7,0);
+    for(let i=8;i<size-8;i++){const v=i%2===0?1:0;m[6][i]=v;fx[6][i]=true;m[i][6]=v;fx[i][6]=true}
+    for(const r of ALIGN[ver])for(const c of ALIGN[ver]){
+      if((r===6&&c===6)||(r===6&&c===size-7)||(r===size-7&&c===6))continue;
+      for(let i=-2;i<=2;i++)for(let j=-2;j<=2;j++){
+        m[r+i][c+j]=(Math.max(Math.abs(i),Math.abs(j))!==1)?1:0;fx[r+i][c+j]=true;}
+    }
+    for(let i=0;i<=8;i++){fx[8][i]=true;fx[i][8]=true}
+    for(let i=size-8;i<size;i++){fx[8][i]=true;fx[i][8]=true}
+    m[size-8][8]=1;fx[size-8][8]=true;
+    if(ver>=7){
+      let rem=ver;for(let i=0;i<12;i++)rem=((rem<<1)^(((rem>>>11)&1)*0x1F25))>>>0;
+      const bits=((ver<<12)|rem)>>>0;
+      for(let i=0;i<18;i++){
+        const b=(bits>>>i)&1,r=Math.floor(i/3),c=size-11+(i%3);
+        m[r][c]=b;fx[r][c]=true;m[c][r]=b;fx[c][r]=true;
+      }
+    }
+    let bi=0,dir=-1,row=size-1;
+    for(let col=size-1;col>0;col-=2){
+      if(col===6)col--;
+      for(;;){
+        for(let k=0;k<2;k++){
+          const cc=col-k;
+          if(!fx[row][cc]){
+            let bit=0;
+            if(bi<out.length*8){bit=(out[bi>>3]>>>(7-(bi&7)))&1;bi++}
+            m[row][cc]=bit;
+          }
+        }
+        row+=dir;
+        if(row<0||row>=size){row-=dir;dir=-dir;break}
+      }
+    }
+    const fmt=(mat,mask)=>{
+      const d=(0<<3)|mask;
+      let rem=d;for(let i=0;i<10;i++)rem=((rem<<1)^(((rem>>>9)&1)*0x537))>>>0;
+      const bits=(((d<<10)|rem)^0x5412)>>>0,g=i=>(bits>>>i)&1;
+      for(let i=0;i<=5;i++)mat[i][8]=g(i);
+      mat[7][8]=g(6);mat[8][8]=g(7);mat[8][7]=g(8);
+      for(let i=9;i<15;i++)mat[8][14-i]=g(i);
+      for(let i=0;i<8;i++)mat[8][size-1-i]=g(i);
+      for(let i=8;i<15;i++)mat[size-15+i][8]=g(i);
+      mat[size-8][8]=1;
+    };
+    let best=null,bestP=Infinity;
+    for(let k=0;k<8;k++){
+      const t=m.map(r=>r.slice());
+      for(let r=0;r<size;r++)for(let c=0;c<size;c++)if(!fx[r][c]&&MASKS[k](r,c))t[r][c]^=1;
+      fmt(t,k);
+      const p=penalty(t,size);
+      if(p<bestP){bestP=p;best=t}
+    }
+    return best;
+  }
+  function draw(cv,str,quiet=4){
+    const m=make(str),n=m.length,px=Math.max(2,Math.floor(480/(n+quiet*2))),
+      dim=(n+quiet*2)*px;
+    cv.width=dim;cv.height=dim;
+    const x=cv.getContext("2d");
+    x.fillStyle="#fff";x.fillRect(0,0,dim,dim);
+    x.fillStyle="#0E1A3A";
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++)
+      if(m[r][c])x.fillRect((c+quiet)*px,(r+quiet)*px,px,px);
+    return cv;
+  }
+  return {make,draw};
+})();
+
+/* ========== 앱 ========== */
+const $=id=>document.getElementById(id);
+const VIEWS=["s1","sd","s2","s3","s4","sa"];
+const show=(...ids)=>{
+  VIEWS.forEach(s=>$(s).classList.toggle("hidden",!ids.includes(s)));
+  const ab=$("adminBtn");
+  if(ab)ab.style.display=(RO||ids.includes("sa"))?"none":"block";
+};
+
+const ANIMALS={
+  "종종|스르륵|앞발":{emo:"🐆",name:"치타형",sig:"낮고 빠르게 미끄러지듯",
+    good:"에너지 낭비가 거의 없는 효율적인 주법이에요.",tip:"지금 폼을 유지하면서 거리를 조금씩 늘려보세요."},
+  "종종|스르륵|뒤꿈치":{emo:"🐧",name:"펭귄형",sig:"종종걸음, 안정감 최고",
+    good:"흔들림이 적어 장거리에 강한 안정형이에요.",tip:"착지를 조금 앞으로 당기면 무릎 부담이 줄어요."},
+  "종종|통통|앞발":{emo:"🐇",name:"토끼형",sig:"가볍게 통통 튀는 리듬",
+    good:"탄성이 좋아 스피드를 내기 유리해요.",tip:"위로 뜨는 힘을 앞으로 돌리면 더 빨라집니다."},
+  "종종|통통|뒤꿈치":{emo:"🐶",name:"강아지형",sig:"신나서 뛰는 에너지",
+    good:"힘차고 즐겁게 달리는 에너지가 강점이에요.",tip:"상체를 살짝 앞으로 기울이면 출렁임이 줄어요."},
+  "성큼|스르륵|앞발":{emo:"🐺",name:"늑대형",sig:"낮고 긴 보폭, 장거리 체질",
+    good:"보폭이 길고 흔들림이 적은 장거리 체질이에요.",tip:"케이던스를 5spm만 올리면 속도가 붙습니다."},
+  "성큼|스르륵|뒤꿈치":{emo:"🐻",name:"곰형",sig:"묵직하고 꾸준함",
+    good:"페이스를 오래 유지하는 꾸준함이 강점이에요.",tip:"보폭을 줄이고 걸음 수를 늘리면 훨씬 가벼워져요."},
+  "성큼|통통|앞발":{emo:"🦌",name:"가젤형",sig:"크게 날아오르는 점프",
+    good:"탄력이 뛰어나 보는 재미가 있는 주법이에요.",tip:"착지 충격이 큰 편이니 쿠션 러닝화를 추천해요."},
+  "성큼|통통|뒤꿈치":{emo:"🦘",name:"캥거루형",sig:"크게 출렁이는 파워",
+    good:"한 걸음에 실리는 힘이 좋아요.",tip:"보폭을 줄이고 발을 몸 아래로 딛는 연습을 해보세요."}
+};
+const LEVELS=["🌱 새싹","🏃 러너","🔥 에이스"];   // 러닝 경험 선택값(0~2)
+const KEYS=Object.keys(ANIMALS);
+
+let PoseLandmarker=null,landmarker=null,drawer=null;
+let stream=null,raf=null,phase="idle",foot=null;
+let samples=[],t0=0,waitUntil=0,endAt=0,lastSwing=null;
+let current=null, RO=false, exp=1;
+
+const cfg=()=>({cad:+$("tCad").value||165,osc:+$("tOsc").value||9,
+  dur:(+$("tDur").value||20)*1000,wait:(+$("tWait").value||60)*1000,
+  swing:(+$("tSwing").value||12)/100});
+
+/* ---------- 페이로드 인코딩 (해시 프래그먼트 전용) ---------- */
+const b64u={
+  enc(s){const b=new TextEncoder().encode(s);let x="";
+    for(const c of b)x+=String.fromCharCode(c);
+    return btoa(x).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")},
+  dec(s){s=s.replace(/-/g,"+").replace(/_/g,"/");
+    while(s.length%4)s+="=";
+    const x=atob(s),b=new Uint8Array(x.length);
+    for(let i=0;i<x.length;i++)b[i]=x.charCodeAt(i);
+    return new TextDecoder().decode(b)}
+};
+const sum=s=>{let h=0x811c9dc5;
+  for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0}
+  return (h>>>0).toString(36).slice(-3)};
+function pack(r){
+  const name=$("optNoName").checked?"":r.nick;
+  // 캐릭터는 인덱스 1자리로 (한글 키 그대로 넣으면 QR 버전이 커져 스캔이 어려움)
+  const p=["2",name,r.cad,(+r.osc).toFixed(1),r.exp,KEYS.indexOf(r.key),
+           r.swing==null?"":r.swing].join("|");
+  const e=b64u.enc(p);
+  return e+"."+sum(e);
+}
+function unpack(h){
+  const i=h.lastIndexOf(".");
+  if(i<0)return null;
+  const e=h.slice(0,i),c=h.slice(i+1);
+  if(sum(e)!==c)return null;
+  let p;try{p=b64u.dec(e).split("|")}catch(x){return null}
+  if(p[0]!=="2"||p.length!==7)return null;
+  const key=KEYS[+p[5]], cad=+p[2], ex=+p[4];
+  if(!key||!(cad>0)||!(ex>=0&&ex<=2))return null;
+  return {nick:p[1],cad,osc:+p[3],exp:ex,key,
+    swing:p[6]===""?null:+p[6]};
+}
+
+/* ---------- 카메라 ---------- */
+async function initCam(){
+  $("camErr").classList.add("hidden");
+  $("startCam").disabled=true;$("startCam").textContent="카메라 준비 중…";
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+    const v=$("video");v.srcObject=stream;await v.play();
+    show("s2");$("badge").textContent="모델 불러오는 중…";
+    const vis=await import("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs");
+    PoseLandmarker=vis.PoseLandmarker;
+    const f=await vis.FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker=await PoseLandmarker.createFromOptions({
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},
+      runningMode:"VIDEO",numPoses:1},f);
+    drawer=new vis.DrawingUtils($("overlay").getContext("2d"));
+    $("badge").textContent="대기 중";phase="preview";loop();
+  }catch(e){
+    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+    show("s1");
+    $("startCam").disabled=false;$("startCam").textContent="카메라 켜기";
+    $("camErr").textContent="카메라나 자세 인식 모델을 불러오지 못했습니다 ("+(e.message||e)+"). 인터넷 연결과 카메라 권한을 확인하거나, '카메라 없이 숫자만 입력하기'로 진행하세요.";
+    $("camErr").classList.remove("hidden");
+  }
+}
+function loop(){
+  raf=requestAnimationFrame(loop);
+  const v=$("video"),c=$("overlay");
+  if(!landmarker||v.readyState<2)return;
+  if(c.width!==v.videoWidth){c.width=v.videoWidth;c.height=v.videoHeight}
+  let lm=null;
+  try{const res=landmarker.detectForVideo(v,performance.now());lm=res.landmarks&&res.landmarks[0]}catch(e){return}
+  const ctx=c.getContext("2d");ctx.clearRect(0,0,c.width,c.height);
+  if(lm&&drawer){
+    drawer.drawConnectors(lm,PoseLandmarker.POSE_CONNECTIONS,{color:"#12E39B",lineWidth:3});
+    drawer.drawLandmarks(lm,{color:"#FFD23F",radius:3});
+  }
+  const now=performance.now();
+  if(phase==="wait"){
+    const left=Math.ceil((waitUntil-now)/1000);
+    $("big").textContent=left>0?left:"";$("badge").textContent="적응 중 · 편하게 달리세요";
+    if(now>=waitUntil)beginMeasure();
+    return;
+  }
+  if(phase!=="measure")return;
+  if(lm){
+    const hip=(lm[23].y+lm[24].y)/2,sho=(lm[11].y+lm[12].y)/2;
+    const hipX=(lm[23].x+lm[24].x)/2;
+    // 손목 앞뒤 위치(골반 기준) — 손잡이를 잡으면 거의 안 움직임
+    const vis=p=>(p&&(p.visibility===undefined||p.visibility>0.4))?p:null;
+    const L=vis(lm[15]),R=vis(lm[16]);
+    samples.push({t:now,hip,torso:Math.abs(hip-sho),
+      ar:(v.videoWidth&&v.videoHeight)?v.videoWidth/v.videoHeight:1,
+      wl:L?L.x-hipX:null, wr:R?R.x-hipX:null});
+  }
+  $("bar").firstElementChild.style.width=Math.min(100,(now-t0)/cfg().dur*100)+"%";
+  $("big").textContent=Math.max(0,Math.ceil((endAt-now)/1000));
+  $("badge").textContent="측정 중";
+  const l=analyze();
+  if(l){
+    $("liveCad").textContent=l.cad;$("liveOsc").textContent=l.osc.toFixed(1);
+    const sw=$("liveSwing");
+    if(l.swing==null){sw.textContent="–";sw.classList.remove("bad")}
+    else{sw.textContent=Math.round(l.swing*100);sw.classList.toggle("bad",l.swing<cfg().swing)}
+  }
+  if(now>=endAt)finishMeasure();
+}
+
+/* ---------- 분석 ---------- */
+function analyze(){
+  if(samples.length<25)return null;
+  const y=samples.map(s=>s.hip),t=samples.map(s=>s.t),n=y.length;
+  const box=w=>{const o=[],k=(w-1)/2;
+    for(let i=0;i<n;i++){let a=0,c=0;
+      for(let j=Math.max(0,i-k);j<=Math.min(n-1,i+k);j++){a+=y[j];c++}o.push(a/c)}
+    return o};
+  const sm=box(5),sm3=box(3);
+  const pk=[],gap=170;
+  for(let i=2;i<n-2;i++)
+    if(sm[i]<sm[i-1]&&sm[i]<=sm[i+1]&&sm[i]<sm[i-2]&&sm[i]<sm[i+2])
+      if(!pk.length||t[i]-t[pk[pk.length-1]]>gap)pk.push(i);
+  const span=(t[n-1]-t[0])/1000;
+  if(pk.length<4||span<3)return null;
+  const cad=Math.round(pk.length/span*60);
+  const amps=[];
+  for(let k=0;k<pk.length-1;k++){
+    let lo=1,hi=0,to=0,cnt=0;
+    for(let i=pk[k];i<=pk[k+1];i++){
+      lo=Math.min(lo,sm3[i]);hi=Math.max(hi,sm3[i]);to+=samples[i].torso;cnt++}
+    const tr=to/cnt;if(tr>0.02)amps.push((hi-lo)/tr);
+  }
+  if(!amps.length)return null;
+  amps.sort((a,b)=>a-b);
+  let ratio=amps[Math.floor(amps.length/2)];
+  const fps=n/span,x=Math.PI*(cad/60)/fps;
+  const g=x>0.001?Math.sin(3*x)/(3*Math.sin(x)):1;
+  if(g>0.3)ratio/=g;
+
+  // 팔 흔들림: 손목 앞뒤 위치의 표준편차를 몸통 길이로 정규화
+  const sd=a=>{if(a.length<12)return null;
+    const m=a.reduce((p,q)=>p+q,0)/a.length;
+    return Math.sqrt(a.reduce((p,q)=>p+(q-m)*(q-m),0)/a.length)};
+  const wl=[],wr=[];
+  for(const o of samples){if(o.wl!=null)wl.push(o.wl);if(o.wr!=null)wr.push(o.wr)}
+  const torsoMean=samples.reduce((p,o)=>p+o.torso,0)/n;
+  const ar=samples[0].ar||1;
+  const a1=sd(wl),a2=sd(wr);
+  let swing=null;
+  if((a1!=null||a2!=null)&&torsoMean>0.02)
+    swing=Math.max(a1||0,a2||0)*ar/torsoMean;
+
+  return {cad:Math.min(260,cad),swing,
+    osc:Math.max(0,Math.min(30,ratio*(+$("height").value||172)*0.27))};
+}
+
+/* ---------- 흐름 ---------- */
+function startFlow(){
+  samples=[];const c=cfg();
+  if(c.wait>0){phase="wait";waitUntil=performance.now()+c.wait;
+    $("goBtn").disabled=true;$("skipBtn").classList.remove("hidden")}
+  else beginMeasure();
+}
+function beginMeasure(){
+  samples=[];phase="measure";t0=performance.now();endAt=t0+cfg().dur;
+  $("goBtn").disabled=true;$("skipBtn").classList.add("hidden");
+}
+function finishMeasure(){
+  phase="preview";$("big").textContent="";$("badge").textContent="측정 완료";
+  $("bar").firstElementChild.style.width="0";$("goBtn").disabled=false;
+  const r=analyze();
+  if(!r)$("s2hint").textContent="사람을 충분히 인식하지 못했어요. 카메라 각도와 거리를 조정하고 다시 시도하거나, 숫자를 직접 입력해 주세요.";
+  openManual(r);
+}
+let gripBlocked=false;
+function openManual(r){
+  const c=cfg();
+  lastSwing=r?r.swing:null;
+  $("mCad").value=r?r.cad:"";
+  $("mOsc").value=r?r.osc.toFixed(1):"";
+  foot=null;
+  document.querySelectorAll("[data-foot]").forEach(b=>b.classList.remove("on"));
+  $("walkWarn").classList.toggle("hidden",!(r&&r.cad<140));
+  gripBlocked = !!(r && r.swing!=null && r.swing < c.swing);
+  $("gripWarn").classList.toggle("hidden",!gripBlocked);
+  $("judgeBtn").disabled=true;
+  show("s3");
+}
+const canJudge=()=>foot!==null&&!gripBlocked;
+const syncJudge=()=>{$("judgeBtn").disabled=!canJudge()};
+
+/* ---------- 판정 ---------- */
+function render(r){
+  const a=ANIMALS[r.key]||ANIMALS[KEYS[0]];
+  $("emo").textContent=a.emo;
+  $("lvl").textContent=LEVELS[r.exp]||LEVELS[1];
+  $("animal").textContent=a.name;
+  $("sig").textContent=a.sig;
+  $("rCad").textContent=r.cad;
+  $("rOsc").textContent=(+r.osc).toFixed(1);
+  $("rStr").textContent=r.swing==null?"–":r.swing;
+  const p=r.key.split("|");
+  $("printSub").textContent=(r.nick?esc(r.nick)+" 님 · ":"")+"롯데이노베이트 창립 30주년";
+  $("printDate").textContent=new Date().toLocaleDateString("ko-KR");
+  $("desc").innerHTML=(r.nick?"<b>"+esc(r.nick)+"</b> 님은 ":"")+
+    "<b>"+p[0]+"걸음 · "+p[1]+" · "+p[2]+" 착지</b>형입니다.<br><br>"+
+    "<b>강점</b> "+a.good+"<br><b>코칭 팁</b> "+a.tip;
+  current=r;
+}
+const esc=s=>String(s).replace(/[<>&"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;",'"':"&quot;"}[c]));
+
+function judge(){
+  const c=cfg(),h=+$("height").value||172;
+  const cad=+$("mCad").value||0,osc=+$("mOsc").value||0;
+  if(cad<=0){alert("케이던스를 입력해 주세요.");return}
+  const adj=c.cad+(h>=180?-5:h<=160?5:0);
+  const key=[cad>=adj?"종종":"성큼",osc>=c.osc?"통통":"스르륵",foot==="heel"?"뒤꿈치":"앞발"].join("|");
+  const r={nick:$("nick").value.trim(),cad,osc,height:h,exp,key,
+    ts:new Date().toISOString(),
+    swing:lastSwing==null?null:Math.round(lastSwing*100)};
+  render(r);
+  saveRecord(r);
+  makeQR(r);
+  show("s4");
+}
+function makeQR(r){
+  $("qrErr").classList.add("hidden");
+  try{
+    const base=location.origin+location.pathname;
+    QR.draw($("qrCanvas"), base+"#r="+pack(r));
+  }catch(e){
+    $("qrErr").textContent="QR을 만들지 못했습니다 ("+(e.message||e)+"). 결과 화면을 직접 보여주세요.";
+    $("qrErr").classList.remove("hidden");
+  }
+}
+
+/* ---------- 결과 이미지 ---------- */
+function drawShare(){
+  const cv=$("shareCanvas"),x=cv.getContext("2d"),W=1080,H=1220;
+  cv.width=W;cv.height=H;
+  const r=current,a=ANIMALS[r.key]||ANIMALS[KEYS[0]];
+  const F='"Pretendard","Noto Sans KR",sans-serif';
+  x.fillStyle="#1B3FA0";x.fillRect(0,0,W,H);
+  x.fillStyle="#fff";
+  const m=60,cardY=190,cardH=920;
+  x.beginPath();x.roundRect(m,cardY,W-m*2,cardH,40);x.fill();
+  x.textAlign="center";
+  x.fillStyle="#fff";x.font="700 34px "+F;
+  x.fillText("뜀마니 · 롯데이노베이트 창립 30주년",W/2,110);
+  x.font="500 26px "+F;x.fillStyle="rgba(255,255,255,.8)";
+  x.fillText("나의 러닝 캐릭터",W/2,158);
+  let y=cardY+180;
+  x.font="200px serif";x.fillStyle="#0E1A3A";
+  x.fillText(a.emo,W/2,y);
+  y+=90;
+  x.fillStyle="#FFD23F";
+  const lv=LEVELS[r.exp]||LEVELS[1];
+  x.font="800 30px "+F;
+  const lw=x.measureText(lv).width+48;
+  x.beginPath();x.roundRect(W/2-lw/2,y-34,lw,50,25);x.fill();
+  x.fillStyle="#0E1A3A";x.fillText(lv,W/2,y);
+  y+=100;
+  x.font="900 84px "+F;x.fillText(a.name,W/2,y);
+  y+=56;
+  x.font="700 32px "+F;x.fillStyle="#1B3FA0";x.fillText(a.sig,W/2,y);
+  if(r.nick){y+=54;x.font="500 30px "+F;x.fillStyle="#5B6785";x.fillText(r.nick+" 님",W/2,y)}
+  y+=80;
+  const st=[[r.cad,"케이던스 spm"],[(+r.osc).toFixed(1),"수직진폭 cm"],[r.swing==null?"–":r.swing,"팔치기"]];
+  const bw=280,gapx=16,startX=W/2-(bw*3+gapx*2)/2;
+  st.forEach((s,i)=>{
+    const bx=startX+i*(bw+gapx);
+    x.fillStyle="#F2F5FC";x.beginPath();x.roundRect(bx,y,bw,150,20);x.fill();
+    x.fillStyle="#0E1A3A";x.font="800 60px "+F;x.fillText(String(s[0]),bx+bw/2,y+86);
+    x.fillStyle="#5B6785";x.font="500 24px "+F;x.fillText(s[1],bx+bw/2,y+126);
+  });
+  y+=215;
+  x.fillStyle="#0E1A3A";x.font="700 30px "+F;
+  const p=r.key.split("|");
+  x.fillText(p[0]+"걸음 · "+p[1]+" · "+p[2]+" 착지",W/2,y);
+  y+=56;
+  x.fillStyle="#5B6785";x.font="500 27px "+F;
+  wrap(x,a.tip,W/2,y,W-m*2-100,38);
+  x.fillStyle="rgba(255,255,255,.75)";x.font="500 24px "+F;
+  x.fillText("재미로 보는 러닝 타입 분류입니다",W/2,H-58);
+  return cv;
+}
+function wrap(x,text,cx,y,maxW,lh){
+  const ws=text.split(" ");let line="";
+  for(const w of ws){
+    const t=line?line+" "+w:w;
+    if(x.measureText(t).width>maxW&&line){x.fillText(line,cx,y);y+=lh;line=w}
+    else line=t;
+  }
+  if(line)x.fillText(line,cx,y);
+}
+function saveImage(){
+  if(!current)return;
+  const hint=$("saveHint");
+  try{
+    const cv=drawShare();
+    cv.toBlob(b=>{
+      if(!b){fallback();return}
+      const url=URL.createObjectURL(b);
+      const a=document.createElement("a");
+      a.href=url;a.download="뜀마니_러닝캐릭터.png";
+      document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),4000);
+      hint.textContent="저장되지 않으면 화면을 캡처해 주세요.";
+      hint.classList.remove("hidden");
+    },"image/png");
+  }catch(e){fallback()}
+  function fallback(){
+    hint.textContent="이 브라우저에서는 저장이 지원되지 않아요. 화면을 캡처해 주세요.";
+    hint.classList.remove("hidden");
+  }
+}
+
+/* ---------- 운영자 기록 ---------- */
+const LS="ddeum_records_v1";
+const load=()=>{try{return JSON.parse(localStorage.getItem(LS))||[]}catch(e){return[]}};
+const store=a=>{try{localStorage.setItem(LS,JSON.stringify(a))}catch(e){}};
+function saveRecord(r){const a=load();a.push(r);store(a)}
+const median=v=>{if(!v.length)return null;const s=[...v].sort((a,b)=>a-b),h=s.length>>1;
+  return s.length%2?s[h]:(s[h-1]+s[h])/2};
+
+function renderAdmin(){
+  const a=load();
+  $("aTotal").textContent=a.length;
+  const mc=median(a.map(r=>r.cad)),mo=median(a.map(r=>+r.osc));
+  $("aMedC").textContent=mc!==null?Math.round(mc):"–";
+  $("aMedO").textContent=mo!==null?mo.toFixed(1):"–";
+  const cnt={};KEYS.forEach(k=>cnt[k]=0);
+  a.forEach(r=>{if(cnt[r.key]!==undefined)cnt[r.key]++});
+  const max=Math.max(1,...Object.values(cnt));
+  $("aDist").innerHTML=KEYS.map(k=>{
+    const an=ANIMALS[k],n=cnt[k];
+    return '<div class="r"><div>'+an.emo+" "+an.name+'</div>'+
+      '<div class="b" style="width:'+(n/max*100)+'%;opacity:'+(n?1:.18)+'"></div>'+
+      '<div class="n">'+n+"</div></div>";
+  }).join("");
+  $("aLog").innerHTML=a.length?a.slice(-12).reverse().map(r=>{
+    const an=ANIMALS[r.key]||{emo:"",name:"?"};
+    const d=new Date(r.ts);
+    return '<div class="logrow"><div>'+an.emo+" "+esc(r.nick||"(이름없음)")+
+      '</div><span>'+an.name+" · "+r.cad+"spm · "+
+      String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+"</span></div>";
+  }).join(""):'<p class="hint">아직 기록이 없습니다.</p>';
+}
+function exportCsv(){
+  const a=load();
+  if(!a.length){alert("내보낼 기록이 없습니다.");return}
+  const head=["일시","이름","캐릭터","경험","케이던스","수직진폭","팔치기","키","리듬","탄력","착지"];
+  const rows=a.map(r=>{
+    const an=ANIMALS[r.key]||{name:"?"},p=r.key.split("|");
+    return [new Date(r.ts).toLocaleString("ko-KR"),r.nick||"",an.name,
+      (LEVELS[r.exp]||LEVELS[1]).replace(/^\S+\s/,""),
+      r.cad,(+r.osc).toFixed(1),r.swing==null?"":r.swing,r.height,p[0],p[1],p[2]];
+  });
+  const csv=[head,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const blob=new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob),el=document.createElement("a");
+  el.href=url;el.download="뜀마니_측정기록_"+new Date().toISOString().slice(0,10)+".csv";
+  document.body.appendChild(el);el.click();el.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+
+/* ---------- 데모 ---------- */
+const PRESETS=[
+  {n:"🐧 펭귄형 러너",cad:176,osc:6.5,h:165,ex:1,f:"heel"},
+  {n:"🦘 캥거루형 러너",cad:152,osc:12,h:178,ex:1,f:"heel"},
+  {n:"🐆 치타형 러너",cad:182,osc:7,h:172,ex:2,f:"fore"},
+  {n:"🐻 곰형 러너",cad:158,osc:8,h:182,ex:0,f:"heel"},
+  {n:"🤚 손잡이 잡은 사람",cad:170,osc:6,h:172,ex:1,f:"heel",sw:0.04}
+];
+function synth(cad,oscCm,h,swing){
+  const fps=30,secs=(+$("tDur").value||20),tn=0.30;
+  const amp=(oscCm/(h*0.27))*tn,out=[],base=performance.now();
+  // 팔 흔들림: 목표 비율의 표준편차가 나오도록 사인파 진폭을 역산
+  const wa=(swing==null?0.25:swing)*tn*Math.SQRT2;
+  for(let i=0;i<fps*secs;i++){
+    const t=i/fps,ph=2*Math.PI*(cad/120)*t;   // 팔은 두 걸음에 한 주기
+    out.push({t:base+t*1000,torso:tn,ar:1,
+      hip:0.55-(amp/2)*Math.cos(2*Math.PI*(cad/60)*t)+(Math.random()-0.5)*amp*0.12,
+      wl:wa*Math.cos(ph)+(Math.random()-0.5)*0.004,
+      wr:-wa*Math.cos(ph)+(Math.random()-0.5)*0.004});
+  }
+  return out;
+}
+let demoPick=null;
+function runDemo(p){
+  demoPick=p;$("height").value=p.h;
+  exp=p.ex;
+  document.querySelectorAll("[data-exp]").forEach(x=>x.classList.toggle("on",+x.dataset.exp===p.ex));
+  samples=synth(p.cad,p.osc,p.h,p.sw);
+  const r=analyze();
+  $("demoOut").classList.remove("hidden");
+  $("dExpC").textContent=p.cad+" spm";$("dExpO").textContent=p.osc.toFixed(1)+" cm";
+  $("dExpS").textContent="";$("dGotS").textContent="";
+  if(!r){$("dGotC").textContent="–";$("dGotO").textContent="–";$("dDiff").textContent="신호를 분석하지 못했습니다.";return}
+  $("dGotC").textContent=r.cad+" spm";$("dGotO").textContent=r.osc.toFixed(1)+" cm";
+  $("dExpS").textContent=Math.round((p.sw==null?0.25:p.sw)*100);
+  $("dGotS").textContent=r.swing==null?"–":Math.round(r.swing*100);
+  const ec=Math.abs(r.cad-p.cad),eo=Math.abs(r.osc-p.osc);
+  $("dDiff").textContent=(ec<=4&&eo<=1.2?"✅ 오차가 작습니다. 분석 코드가 정상 동작합니다. ":"⚠️ 오차가 큽니다. 기준값이나 알고리즘을 확인하세요. ")
+    +"(케이던스 ±"+ec+"spm, 진폭 ±"+eo.toFixed(1)+"cm)";
+  demoPick._got=r;
+}
+function drawPresets(){
+  $("presets").innerHTML="";
+  PRESETS.forEach(p=>{
+    const b=document.createElement("button");
+    b.className="sub";b.style.marginTop="8px";b.style.textAlign="left";
+      b.innerHTML=p.n+" <span style='color:var(--mute);font-weight:500'>· "+p.cad+"spm · "+p.osc+"cm"+(p.sw!=null?" · 팔 "+Math.round(p.sw*100):"")+"</span>";
+    b.onclick=()=>runDemo(p);
+    $("presets").appendChild(b);
+  });
+}
+
+/* ---------- 이벤트 ---------- */
+$("startCam").onclick=initCam;
+$("manualBtn").onclick=()=>openManual(null);
+$("goBtn").onclick=startFlow;
+$("skipBtn").onclick=beginMeasure;
+document.querySelectorAll("[data-foot]").forEach(b=>b.onclick=()=>{
+  foot=b.dataset.foot;
+  document.querySelectorAll("[data-foot]").forEach(x=>x.classList.toggle("on",x===b));
+  syncJudge();
+});
+$("gripOk").onclick=()=>{gripBlocked=false;$("gripWarn").classList.add("hidden");syncJudge()};
+document.querySelectorAll("[data-exp]").forEach(b=>b.onclick=()=>{
+  exp=+b.dataset.exp;
+  document.querySelectorAll("[data-exp]").forEach(x=>x.classList.toggle("on",x===b));
+});
+$("printBtn").onclick=()=>window.print();
+$("judgeBtn").onclick=judge;
+$("saveImgBtn").onclick=saveImage;
+$("againBtn").onclick=()=>{
+  $("nick").value="";$("saveHint").classList.add("hidden");
+  if(stream&&landmarker){$("goBtn").disabled=false;show("s2")}else show("s1");
+};
+$("demoBtn").onclick=()=>{drawPresets();$("demoOut").classList.add("hidden");show("sd")};
+$("dBack").onclick=()=>show("s1");
+$("dJudge").onclick=()=>{
+  const r=demoPick&&demoPick._got;
+  openManual(r||null);
+  if(demoPick){
+    foot=demoPick.f;
+    document.querySelectorAll("[data-foot]").forEach(x=>x.classList.toggle("on",x.dataset.foot===foot));
+    syncJudge();
+  }
+};
+$("adminBtn").onclick=()=>{renderAdmin();show("sa")};
+$("aBack").onclick=()=>show("s1");
+$("aCsv").onclick=exportCsv;
+$("aClear").onclick=()=>{
+  if(confirm("모든 측정 기록을 삭제합니다. CSV로 내보냈나요?")){store([]);renderAdmin()}
+};
+$("applyMed").onclick=()=>{
+  const a=load();
+  if(a.length<5){alert("기록이 5명 이상일 때 적용할 수 있습니다.");return}
+  $("tCad").value=Math.round(median(a.map(r=>r.cad)));
+  $("tOsc").value=median(a.map(r=>+r.osc)).toFixed(1);
+  alert("기준값을 중앙값으로 바꿨습니다.\n케이던스 "+$("tCad").value+"spm, 진폭 "+$("tOsc").value+"cm");
+};
+window.addEventListener("pagehide",()=>{
+  if(raf)cancelAnimationFrame(raf);
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+});
+
+/* ---------- QR 열람 모드 ---------- */
+(function boot(){
+  const h=location.hash||"";
+  if(h.startsWith("#r=")){
+    const r=unpack(h.slice(3));
+    if(r){
+      RO=true;
+      document.body.classList.add("ro");
+      document.querySelector("header p").textContent="나의 러닝 캐릭터";
+      render(r);
+      show("s4");
+      return;
+    }
+    document.body.classList.add("ro");
+    document.querySelector(".wrap").innerHTML=
+      '<div class="card"><h2>결과를 열 수 없습니다</h2><p class="hint">링크가 잘못되었거나 손상되었습니다. 부스에서 QR을 다시 받아주세요.</p></div>';
+    return;
+  }
+  show("s1");
+})();
+</script>
+</body>
+</html>
