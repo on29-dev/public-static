@@ -240,6 +240,7 @@ body.ro .resultCard{user-select:none;-webkit-user-select:none}
   <div class="card" style="margin-top:12px">
     <button id="goBtn">측정 시작</button>
     <button id="skipBtn" class="sub" style="margin-top:8px">적응 시간 건너뛰고 바로 측정</button>
+    <button id="stopCam" class="sub" style="margin-top:8px">카메라 끄기 (대기 중 발열·배터리 절약)</button>
     <p class="hint" id="s2hint">벨트 <b>뒤쪽 절반</b>에서 편하게 뛰도록 안내해 주세요. 손잡이를 놓은 것을 확인한 뒤 측정을 시작합니다.</p>
   </div>
 </section>
@@ -507,6 +508,10 @@ const show=(...ids)=>{
   VIEWS.forEach(s=>$(s).classList.toggle("hidden",!ids.includes(s)));
   const ab=$("adminBtn");
   if(ab)ab.style.display=(RO||ids.includes("sa"))?"none":"block";
+  // 발열·배터리: 측정 화면을 벗어나면 자세 인식을 멈춤
+  const onCam=ids.includes("s2");
+  if(!onCam){ if(raf){cancelAnimationFrame(raf);raf=null} }
+  else if(landmarker&&!raf){ lastInf=0; loop(); }
 };
 
 const ANIMALS={
@@ -532,7 +537,7 @@ const KEYS=Object.keys(ANIMALS);
 
 let PoseLandmarker=null,landmarker=null,drawer=null;
 let stream=null,raf=null,phase="idle",foot=null;
-let samples=[],t0=0,waitUntil=0,endAt=0,lastSwing=null;
+let samples=[],t0=0,waitUntil=0,endAt=0,lastSwing=null,lastInf=0;
 let current=null, RO=false, exp=1;
 
 const cfg=()=>({cad:+$("tCad").value||165,osc:+$("tOsc").value||9,
@@ -586,9 +591,13 @@ async function initCam(){
   let step="cam";
   try{
     stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:{ideal:"environment"},width:{ideal:1280},height:{ideal:720}},audio:false});
+      video:{facingMode:{ideal:"environment"},width:{ideal:960},height:{ideal:540}},audio:false});
     const v=$("video");v.srcObject=stream;await v.play();
     show("s2");
+
+    // 모델이 이미 올라와 있으면 다시 받지 않음 (카메라 껐다 켤 때 즉시 재개)
+    if(landmarker){$("badge").textContent="대기 중";phase="preview";lastInf=0;loop();
+      $("startCam").disabled=false;$("startCam").textContent="카메라 켜기";return}
 
     step="lib";
     $("badge").textContent="모델 불러오는 중…";
@@ -629,22 +638,30 @@ async function initCam(){
 }
 function loop(){
   raf=requestAnimationFrame(loop);
+  const now=performance.now();
+
+  // 카운트다운은 매 프레임 (가벼움)
+  if(phase==="wait"){
+    const left=Math.ceil((waitUntil-now)/1000);
+    $("big").textContent=left>0?left:"";$("badge").textContent="적응 중 · 편하게 달리세요";
+    if(now>=waitUntil){beginMeasure();return}
+  }
+
   const v=$("video"),c=$("overlay");
   if(!landmarker||v.readyState<2)return;
+
+  // 발열 억제: 측정 중에만 30fps, 그 외에는 6fps로 추론
+  const iv=(phase==="measure")?33:170;
+  if(now-lastInf<iv)return;
+  lastInf=now;
+
   if(c.width!==v.videoWidth){c.width=v.videoWidth;c.height=v.videoHeight}
   let lm=null;
-  try{const res=landmarker.detectForVideo(v,performance.now());lm=res.landmarks&&res.landmarks[0]}catch(e){return}
+  try{const res=landmarker.detectForVideo(v,now);lm=res.landmarks&&res.landmarks[0]}catch(e){return}
   const ctx=c.getContext("2d");ctx.clearRect(0,0,c.width,c.height);
   if(lm&&drawer){
     drawer.drawConnectors(lm,PoseLandmarker.POSE_CONNECTIONS,{color:"#12E39B",lineWidth:3});
     drawer.drawLandmarks(lm,{color:"#FFD23F",radius:3});
-  }
-  const now=performance.now();
-  if(phase==="wait"){
-    const left=Math.ceil((waitUntil-now)/1000);
-    $("big").textContent=left>0?left:"";$("badge").textContent="적응 중 · 편하게 달리세요";
-    if(now>=waitUntil)beginMeasure();
-    return;
   }
   if(phase!=="measure")return;
   if(lm){
@@ -995,6 +1012,11 @@ document.querySelectorAll("[data-exp]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("[data-exp]").forEach(x=>x.classList.toggle("on",x===b));
 });
 $("printBtn").onclick=()=>window.print();
+$("stopCam").onclick=()=>{
+  if(raf){cancelAnimationFrame(raf);raf=null}
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
+  phase="idle";show("s1");                  // 모델은 그대로 두어 즉시 재개
+};
 $("judgeBtn").onclick=judge;
 $("saveImgBtn").onclick=saveImage;
 $("againBtn").onclick=()=>{
