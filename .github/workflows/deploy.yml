@@ -23,7 +23,6 @@ jobs:
         run: |
           mkdir -p _site/assets
           cp marathon-extension-1-guide.html _site/
-          cp -r assets/. _site/assets/
 
       - uses: actions/configure-pages@v5
 
