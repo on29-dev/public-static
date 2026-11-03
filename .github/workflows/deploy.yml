@@ -33,5 +33,3 @@ jobs:
 
       - id: deployment
         uses: actions/deploy-pages@v4
-
-이렇게 했는데 안돼
